@@ -110,6 +110,7 @@ radial-gradient(circle at 80% 20%,rgba(59,130,246,.16),transparent 28%)}
       <h2 id="authTitle">Iniciar sesión</h2>
       <div class="sub" id="authSub">Ingresa con tu cuenta para ver tus conversaciones.</div>
       <div id="authNotice" class="notice hidden"></div>
+<div id="systemStatus" class="notice">Inicializando Firebase…</div>
 
       <div class="field hidden" id="nameField">
         <label>Nombre</label>
@@ -167,6 +168,19 @@ radial-gradient(circle at 80% 20%,rgba(59,130,246,.16),transparent 28%)}
   </main>
 </section>
 
+
+<script>
+window.addEventListener("error", function(e){
+  var s=document.getElementById("systemStatus");
+  if(s){s.className="notice error";s.textContent="Error de JavaScript: "+(e.message||"No se pudo cargar la aplicación.");}
+});
+window.addEventListener("unhandledrejection", function(e){
+  var s=document.getElementById("systemStatus");
+  var msg=(e.reason && (e.reason.message||e.reason.code)) || String(e.reason||"Error desconocido");
+  if(s){s.className="notice error";s.textContent="Error de Firebase/JavaScript: "+msg;}
+});
+</script>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
 import {
@@ -198,10 +212,25 @@ const configWarning = document.getElementById("configWarning");
 if(!configured) configWarning.classList.remove("hidden");
 
 let auth=null, db=null;
-if(configured){
-  const firebaseApp = initializeApp(firebaseConfig);
-  auth = getAuth(firebaseApp);
-  db = getFirestore(firebaseApp);
+let firebaseReady=false;
+const systemStatus=document.getElementById("systemStatus");
+
+try{
+  if(configured){
+    const firebaseApp = initializeApp(firebaseConfig);
+    auth = getAuth(firebaseApp);
+    db = getFirestore(firebaseApp);
+    firebaseReady=true;
+    systemStatus.className="notice ok";
+    systemStatus.textContent="Firebase conectado. Puedes iniciar sesión o crear una cuenta.";
+  }else{
+    systemStatus.className="notice error";
+    systemStatus.textContent="Falta configurar Firebase.";
+  }
+}catch(err){
+  console.error("Error inicializando Firebase:",err);
+  systemStatus.className="notice error";
+  systemStatus.textContent="No se pudo iniciar Firebase: "+(err.message||err.code||err);
 }
 
 /* UI */
@@ -274,12 +303,20 @@ switchMode.onclick=()=>{
 };
 
 authButton.onclick=async()=>{
-  if(!configured){showNotice("Primero debes pegar tu configuración de Firebase en el archivo.","error");return}
+  hideNotice();
+  if(!firebaseReady){
+    showNotice("Firebase no está listo. Revisa el mensaje de estado que aparece arriba.","error");
+    return;
+  }
   const email=emailInput.value.trim();
   const password=passwordInput.value;
   const name=nameInput.value.trim();
   if(!email||!password||(mode==="register"&&!name)){showNotice("Completa todos los campos.","error");return}
   authButton.disabled=true;
+  const originalButtonText=authButton.textContent;
+  authButton.textContent=mode==="register"?"Creando cuenta…":"Entrando…";
+  systemStatus.className="notice";
+  systemStatus.textContent=mode==="register"?"Creando tu cuenta en Firebase…":"Verificando tus datos en Firebase…";
   try{
     if(mode==="register"){
       const cred=await createUserWithEmailAndPassword(auth,email,password);
@@ -290,6 +327,8 @@ authButton.onclick=async()=>{
     }else{
       await signInWithEmailAndPassword(auth,email,password);
     }
+    systemStatus.className="notice ok";
+    systemStatus.textContent="Autenticación correcta. Abriendo SantiChat…";
   }catch(err){
     const friendly={
       "auth/email-already-in-use":"Ese correo ya tiene una cuenta.",
@@ -297,8 +336,15 @@ authButton.onclick=async()=>{
       "auth/weak-password":"La contraseña debe tener al menos 6 caracteres.",
       "auth/invalid-email":"El correo no es válido."
     };
-    showNotice(friendly[err.code]||("Error: "+err.message),"error");
-  }finally{authButton.disabled=false}
+    const msg=friendly[err.code]||("Error: "+(err.code||"")+" "+(err.message||""));
+    showNotice(msg,"error");
+    systemStatus.className="notice error";
+    systemStatus.textContent=msg;
+    console.error("Authentication error:",err);
+  }finally{
+    authButton.disabled=false;
+    authButton.textContent=originalButtonText;
+  }
 };
 
 document.getElementById("logoutBtn").onclick=()=>configured&&signOut(auth);
@@ -313,25 +359,47 @@ document.querySelectorAll(".tab").forEach(btn=>{
 });
 searchInput.oninput=renderList;
 
-if(configured){
+if(firebaseReady){
   onAuthStateChanged(auth,async user=>{
     if(user){
       currentUser=user;
-      await ensureUserProfile(user);
+      systemStatus.className="notice";
+      systemStatus.textContent="Sesión iniciada. Cargando tu perfil…";
+      try{
+        await ensureUserProfile(user);
+      }catch(err){
+        console.error("Error cargando perfil:",err);
+        systemStatus.className="notice error";
+        systemStatus.textContent="Entraste correctamente, pero Firestore rechazó el perfil: "+(err.code||err.message||err);
+        showNotice(systemStatus.textContent,"error");
+        return;
+      }
       authScreen.classList.add("hidden");
       appScreen.classList.remove("hidden");
       myName.textContent=user.displayName||user.email.split("@")[0];
       myEmail.textContent=user.email;
       myAvatar.textContent=initials(user.displayName||user.email);
-      await loadPeople();
-      subscribeChats();
+      systemStatus.className="notice ok";
+      systemStatus.textContent="Sesión iniciada correctamente.";
+      try{
+        await loadPeople();
+        subscribeChats();
+      }catch(err){
+        console.error("Error cargando datos:",err);
+      }
     }else{
       currentUser=null;activeChat=null;activePeer=null;
       if(unsubscribeChats)unsubscribeChats();
       if(unsubscribeMessages)unsubscribeMessages();
       authScreen.classList.remove("hidden");
       appScreen.classList.add("hidden");
+      systemStatus.className="notice ok";
+      systemStatus.textContent="Firebase conectado. Puedes iniciar sesión o crear una cuenta.";
     }
+  }, err=>{
+    console.error("Auth observer error:",err);
+    systemStatus.className="notice error";
+    systemStatus.textContent="Error de Authentication: "+(err.code||err.message||err);
   });
 }
 
