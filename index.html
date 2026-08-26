@@ -71,9 +71,29 @@ radial-gradient(circle at 80% 20%,rgba(59,130,246,.16),transparent 28%)}
 .message.them{align-self:flex-start;background:var(--bubble);border-bottom-left-radius:4px}
 .message.me{align-self:flex-end;background:#2563eb;border-bottom-right-radius:4px}
 .message time{display:block;text-align:right;font-size:10px;opacity:.7;margin-top:5px}
-.composer{display:grid;grid-template-columns:1fr auto;gap:10px;padding:14px;border-top:1px solid var(--line);background:#0d1626}
+.composer{display:grid;grid-template-columns:auto 1fr auto;gap:10px;padding:14px;border-top:1px solid var(--line);background:#0d1626;position:relative}
 .composer input{border:1px solid var(--line);background:#091322;color:white;border-radius:12px;padding:12px 14px;outline:none}
 .send{border:0;border-radius:12px;background:var(--blue);color:white;padding:0 18px;font-weight:700}
+.emoji-btn{border:1px solid var(--line);background:#101b2e;color:white;border-radius:12px;width:44px}
+.emoji-panel{position:absolute;left:14px;bottom:66px;background:#0f172a;border:1px solid var(--line);border-radius:14px;padding:10px;display:none;grid-template-columns:repeat(6,38px);gap:4px;box-shadow:0 15px 45px rgba(0,0,0,.35)}
+.emoji-panel.show{display:grid}
+.emoji-panel button{border:0;background:transparent;font-size:22px;border-radius:8px;padding:5px}
+.emoji-panel button:hover{background:#1e293b}
+.section-label{padding:10px 14px 6px;color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.presence{display:inline-flex;align-items:center;gap:6px}
+.presence::before{content:"";width:7px;height:7px;border-radius:50%;background:#64748b}
+.presence.online::before{background:var(--green)}
+.profile-actions{display:flex;gap:8px}
+.modal-card .field input{background:#091322}
+.danger-btn{border:1px solid #5b2630;background:#32161c;color:#fecaca;border-radius:10px;padding:10px 12px}
+.secondary-btn{border:1px solid var(--line);background:#121d31;color:white;border-radius:10px;padding:10px 12px}
+.info-grid{display:grid;gap:10px;margin-top:14px}.info-box{background:#0a1322;border:1px solid var(--line);border-radius:12px;padding:12px}.info-box small{color:var(--muted);display:block;margin-bottom:4px}
+.empty-action{margin-top:14px;border:0;background:var(--blue);color:white;padding:10px 14px;border-radius:10px}
+.unread-sep{text-align:center;color:#93c5fd;font-size:11px;margin:7px 0}
+.message .ticks{margin-left:4px}
+.message .ticks.read{color:#bfdbfe}
+.top-actions{display:flex;gap:8px}
+@media(max-width:520px){.composer{grid-template-columns:auto 1fr auto}.send{padding:0 12px}.message{max-width:84%}}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;place-items:center;padding:20px;z-index:10}
 .modal.show{display:grid}.modal-card{width:min(520px,100%);max-height:80vh;overflow:auto;background:#0f172a;border:1px solid var(--line);border-radius:18px;padding:18px}
 .user-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
@@ -137,7 +157,10 @@ radial-gradient(circle at 80% 20%,rgba(59,130,246,.16),transparent 28%)}
         <div class="avatar" id="myAvatar">?</div>
         <div class="me-info"><strong id="myName">Usuario</strong><small id="myEmail"></small></div>
       </div>
-      <button class="icon-btn" id="logoutBtn" title="Cerrar sesión">↪</button>
+      <div class="profile-actions">
+        <button class="icon-btn" id="profileBtn" title="Mi perfil">⚙</button>
+        <button class="icon-btn" id="logoutBtn" title="Cerrar sesión">↪</button>
+      </div>
     </div>
     <div class="search"><input id="searchInput" placeholder="Buscar..."></div>
     <div class="tabs">
@@ -154,20 +177,58 @@ radial-gradient(circle at 80% 20%,rgba(59,130,246,.16),transparent 28%)}
         <div class="avatar" id="peerAvatar">?</div>
         <div><strong id="peerName">Selecciona una conversación</strong><small id="peerStatus">SantiChat</small></div>
       </div>
-      <button class="icon-btn">⋮</button>
+      <div class="top-actions">
+        <button class="icon-btn" id="infoBtn" title="Información">ⓘ</button>
+      </div>
     </div>
 
     <div class="messages" id="messages">
-      <div class="empty"><div class="big">💬</div>Selecciona un chat o busca una persona para comenzar una conversación.</div>
+      <div class="empty"><div class="big">💬</div>Ve a <strong>Personas</strong>, elige otra cuenta registrada y comienza una conversación.</div>
     </div>
 
     <form class="composer" id="composer">
+      <button type="button" class="emoji-btn" id="emojiBtn" disabled title="Emojis">☺</button>
       <input id="messageInput" placeholder="Escribe un mensaje..." disabled autocomplete="off">
       <button class="send" id="sendButton" disabled>Enviar</button>
+      <div class="emoji-panel" id="emojiPanel"></div>
     </form>
   </main>
 </section>
 
+
+
+<div class="modal" id="profileModal">
+  <div class="modal-card">
+    <h3>Mi perfil</h3>
+    <div class="field">
+      <label>Nombre visible</label>
+      <input id="profileName" placeholder="Tu nombre">
+    </div>
+    <div class="field">
+      <label>Estado</label>
+      <input id="profileStatus" maxlength="80" placeholder="Disponible">
+    </div>
+    <div class="notice" id="profileNotice">Estos datos serán visibles para otros usuarios de SantiChat.</div>
+    <div style="display:flex;justify-content:flex-end;gap:8px">
+      <button class="secondary-btn" id="closeProfile" type="button">Cancelar</button>
+      <button class="primary" id="saveProfile" type="button" style="width:auto;padding-left:18px;padding-right:18px">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="infoModal">
+  <div class="modal-card">
+    <h3 id="infoName">Contacto</h3>
+    <div class="info-grid">
+      <div class="info-box"><small>Correo</small><span id="infoEmail">—</span></div>
+      <div class="info-box"><small>Estado</small><span id="infoStatus">—</span></div>
+      <div class="info-box"><small>Última conexión</small><span id="infoLastSeen">—</span></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+      <button class="secondary-btn" id="closeInfo" type="button">Cerrar</button>
+    </div>
+  </div>
+</div>
 
 <script>
 window.addEventListener("error", function(e){
@@ -188,8 +249,8 @@ import {
   signOut, onAuthStateChanged, updateProfile
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 import {
-  getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc,
-  query, where, orderBy, onSnapshot, serverTimestamp, updateDoc
+  getFirestore, collection, doc, setDoc, getDoc, addDoc,
+  query, where, orderBy, onSnapshot, serverTimestamp, updateDoc, increment
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
 /* ============================================================
@@ -258,6 +319,13 @@ const sendButton=document.getElementById("sendButton");
 const peerName=document.getElementById("peerName");
 const peerAvatar=document.getElementById("peerAvatar");
 const peerStatus=document.getElementById("peerStatus");
+const profileModal=document.getElementById("profileModal");
+const infoModal=document.getElementById("infoModal");
+const profileName=document.getElementById("profileName");
+const profileStatus=document.getElementById("profileStatus");
+const emojiBtn=document.getElementById("emojiBtn");
+const emojiPanel=document.getElementById("emojiPanel");
+const infoBtn=document.getElementById("infoBtn");
 
 let mode="login";
 let currentUser=null;
@@ -268,6 +336,8 @@ let chats=[];
 let people=[];
 let unsubscribeChats=null;
 let unsubscribeMessages=null;
+let unsubscribePeople=null;
+let typingTimer=null;
 
 function initials(name="Usuario"){
   return name.split(/\s+/).slice(0,2).map(x=>x[0]?.toUpperCase()).join("")||"?";
@@ -288,6 +358,30 @@ function formatLast(ts){
   const d=ts.toDate(), now=new Date();
   if(d.toDateString()===now.toDateString()) return d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
   return d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit"});
+}
+function isOnline(person){
+  const d=person?.lastSeen?.toDate?.();
+  return !!d && (Date.now()-d.getTime()) < 120000;
+}
+function presenceText(person){
+  if(isOnline(person)) return "En línea";
+  const d=person?.lastSeen?.toDate?.();
+  if(!d) return person?.status || "Disponible";
+  return "Últ. vez "+d.toLocaleString("es-CL",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+}
+function getPeerFromChat(ch){
+  if(!ch||!currentUser)return null;
+  const peerId=ch.members.find(x=>x!==currentUser.uid);
+  return people.find(x=>x.uid===peerId)||{uid:peerId,name:"Usuario",email:""};
+}
+function getUnread(ch){
+  return ch?.unreadFor?.[currentUser?.uid] || 0;
+}
+function peerHasRead(ch){
+  if(!ch||!currentUser)return false;
+  const peerId=ch.members.find(x=>x!==currentUser.uid);
+  const ts=ch.lastReadAt?.[peerId];
+  return !!ts;
 }
 
 switchMode.onclick=()=>{
@@ -382,8 +476,9 @@ if(firebaseReady){
       systemStatus.className="notice ok";
       systemStatus.textContent="Sesión iniciada correctamente.";
       try{
-        await loadPeople();
+        subscribePeople();
         subscribeChats();
+        touchPresence();
       }catch(err){
         console.error("Error cargando datos:",err);
       }
@@ -391,6 +486,7 @@ if(firebaseReady){
       currentUser=null;activeChat=null;activePeer=null;
       if(unsubscribeChats)unsubscribeChats();
       if(unsubscribeMessages)unsubscribeMessages();
+      if(unsubscribePeople)unsubscribePeople();
       authScreen.classList.remove("hidden");
       appScreen.classList.add("hidden");
       systemStatus.className="notice ok";
@@ -419,11 +515,26 @@ async function ensureUserProfile(user){
   }
 }
 
-async function loadPeople(){
-  const snap=await getDocs(collection(db,"users"));
-  people=snap.docs.map(d=>d.data()).filter(u=>u.uid!==currentUser.uid);
-  renderList();
+function subscribePeople(){
+  if(unsubscribePeople)unsubscribePeople();
+  unsubscribePeople=onSnapshot(collection(db,"users"),snap=>{
+    people=snap.docs.map(d=>d.data()).filter(u=>u.uid!==currentUser.uid);
+    renderList();
+    if(activePeer){
+      const fresh=people.find(p=>p.uid===activePeer.uid);
+      if(fresh){
+        activePeer=fresh;
+        peerStatus.textContent=presenceText(fresh);
+      }
+    }
+  },err=>console.error("Usuarios:",err));
 }
+async function touchPresence(){
+  if(!currentUser||!db)return;
+  try{ await updateDoc(doc(db,"users",currentUser.uid),{lastSeen:serverTimestamp()}); }catch(e){}
+}
+setInterval(()=>{ if(currentUser)touchPresence(); },60000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&currentUser)touchPresence(); });
 
 function subscribeChats(){
   if(unsubscribeChats)unsubscribeChats();
@@ -433,6 +544,10 @@ function subscribeChats(){
       const at=a.updatedAt?.seconds||0,bt=b.updatedAt?.seconds||0;
       return bt-at;
     });
+    if(activeChat){
+      const fresh=chats.find(c=>c.id===activeChat.id);
+      if(fresh)activeChat=fresh;
+    }
     renderList();
   },err=>console.error("Chats:",err));
 }
@@ -446,9 +561,10 @@ function renderList(){
     filtered.forEach(p=>{
       const el=document.createElement("div");
       el.className="item";
+      const online=isOnline(p);
       el.innerHTML=`
-        <div class="avatar-wrap"><div class="avatar">${initials(p.name||p.email)}</div></div>
-        <div class="chat-meta"><strong>${escapeHtml(p.name||p.email)}</strong><span>${escapeHtml(p.email)}</span></div>
+        <div class="avatar-wrap"><div class="avatar">${initials(p.name||p.email)}</div>${online?'<span class="dot"></span>':''}</div>
+        <div class="chat-meta"><strong>${escapeHtml(p.name||p.email)}</strong><span>${escapeHtml(p.status||presenceText(p))}</span></div>
         <time>›</time>`;
       el.onclick=()=>openChatWith(p);
       list.appendChild(el);
@@ -467,13 +583,15 @@ function renderList(){
     const p=people.find(x=>x.uid===peerId)||{uid:peerId,name:"Usuario",email:""};
     const el=document.createElement("div");
     el.className="item"+(activeChat?.id===ch.id?" active":"");
+    const unread=getUnread(ch);
+    const online=isOnline(p);
     el.innerHTML=`
-      <div class="avatar-wrap"><div class="avatar">${initials(p.name||p.email)}</div></div>
+      <div class="avatar-wrap"><div class="avatar">${initials(p.name||p.email)}</div>${online?'<span class="dot"></span>':''}</div>
       <div class="chat-meta">
         <strong>${escapeHtml(p.name||p.email)}</strong>
-        <span class="preview">${escapeHtml(ch.lastMessage||"Nueva conversación")}</span>
+        <span class="preview">${ch.lastMessageSenderId===currentUser.uid?"Tú: ":""}${escapeHtml(ch.lastMessage||"Nueva conversación")}</span>
       </div>
-      <div><time>${formatLast(ch.updatedAt)}</time></div>`;
+      <div><time>${formatLast(ch.updatedAt)}</time>${unread?`<div class="badge">${unread>99?"99+":unread}</div>`:""}</div>`;
     el.onclick=()=>selectChat(ch,p);
     list.appendChild(el);
   });
@@ -487,7 +605,10 @@ async function openChatWith(peer){
     members:[currentUser.uid,peer.uid],
     createdAt:serverTimestamp(),
     updatedAt:serverTimestamp(),
-    lastMessage:""
+    lastMessage:"",
+    lastMessageSenderId:"",
+    unreadFor:{[currentUser.uid]:0,[peer.uid]:0},
+    lastReadAt:{}
   };
   await setDoc(ref,data);
   selectChat({id:ref.id,...data},peer);
@@ -495,14 +616,24 @@ async function openChatWith(peer){
   document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab==="chats"));
 }
 
+async function markChatRead(chatId){
+  if(!currentUser||!chatId)return;
+  try{
+    await updateDoc(doc(db,"chats",chatId),{
+      ["unreadFor."+currentUser.uid]:0,
+      ["lastReadAt."+currentUser.uid]:serverTimestamp()
+    });
+  }catch(e){console.warn("No se pudo marcar como leído",e)}
+}
 function selectChat(chat,peer){
   activeChat=chat;activePeer=peer;
   peerName.textContent=peer.name||peer.email;
   peerAvatar.textContent=initials(peer.name||peer.email);
-  peerStatus.textContent=peer.email;
-  messageInput.disabled=false;sendButton.disabled=false;
+  peerStatus.textContent=presenceText(peer);
+  messageInput.disabled=false;sendButton.disabled=false;emojiBtn.disabled=false;
   appScreen.classList.add("chat-open");
   subscribeMessages(chat.id);
+  markChatRead(chat.id);
   renderList();
 }
 
@@ -520,10 +651,12 @@ function subscribeMessages(chatId){
       const mine=m.senderId===currentUser.uid;
       const el=document.createElement("div");
       el.className="message "+(mine?"me":"them");
-      el.innerHTML=`<div>${escapeHtml(m.text||"")}</div><time>${formatTime(m.createdAt)}${mine?" · ✓":""}</time>`;
+      const read=mine && peerHasRead(activeChat);
+      el.innerHTML=`<div>${escapeHtml(m.text||"")}</div><time>${formatTime(m.createdAt)}${mine?` <span class="ticks ${read?"read":""}">${read?"✓✓":"✓"}</span>`:""}</time>`;
       messagesEl.appendChild(el);
     });
     messagesEl.scrollTop=messagesEl.scrollHeight;
+    markChatRead(chatId);
   },err=>{
     console.error("Mensajes:",err);
     messagesEl.innerHTML='<div class="empty">No fue posible cargar los mensajes. Revisa las reglas de Firestore.</div>';
@@ -543,9 +676,14 @@ composer.onsubmit=async e=>{
       senderId:currentUser.uid,
       createdAt:serverTimestamp()
     });
+    const peerId=activeChat.members.find(x=>x!==currentUser.uid);
     await updateDoc(doc(db,"chats",activeChat.id),{
       lastMessage:text,
-      updatedAt:serverTimestamp()
+      lastMessageSenderId:currentUser.uid,
+      updatedAt:serverTimestamp(),
+      ["unreadFor."+peerId]:increment(1),
+      ["unreadFor."+currentUser.uid]:0,
+      ["lastReadAt."+currentUser.uid]:serverTimestamp()
     });
   }catch(err){
     console.error(err);
@@ -553,6 +691,66 @@ composer.onsubmit=async e=>{
     messageInput.value=text;
   }finally{sendButton.disabled=false;messageInput.focus()}
 };
+
+// Perfil
+document.getElementById("profileBtn").onclick=async()=>{
+  if(!currentUser)return;
+  const snap=await getDoc(doc(db,"users",currentUser.uid));
+  const data=snap.exists()?snap.data():{};
+  profileName.value=data.name||currentUser.displayName||"";
+  profileStatus.value=data.status||"Disponible";
+  profileModal.classList.add("show");
+};
+document.getElementById("closeProfile").onclick=()=>profileModal.classList.remove("show");
+document.getElementById("saveProfile").onclick=async()=>{
+  const name=profileName.value.trim();
+  const status=profileStatus.value.trim()||"Disponible";
+  if(!name)return;
+  try{
+    await updateProfile(currentUser,{displayName:name});
+    await updateDoc(doc(db,"users",currentUser.uid),{name,status,lastSeen:serverTimestamp()});
+    myName.textContent=name;
+    myAvatar.textContent=initials(name);
+    profileModal.classList.remove("show");
+  }catch(e){
+    document.getElementById("profileNotice").textContent="No se pudo guardar: "+(e.message||e);
+    document.getElementById("profileNotice").className="notice error";
+  }
+};
+
+// Información del contacto
+infoBtn.onclick=()=>{
+  if(!activePeer)return;
+  document.getElementById("infoName").textContent=activePeer.name||activePeer.email;
+  document.getElementById("infoEmail").textContent=activePeer.email||"—";
+  document.getElementById("infoStatus").textContent=activePeer.status||"Disponible";
+  document.getElementById("infoLastSeen").textContent=presenceText(activePeer);
+  infoModal.classList.add("show");
+};
+document.getElementById("closeInfo").onclick=()=>infoModal.classList.remove("show");
+
+// Emojis
+const emojis=["😀","😂","😍","🥰","😎","🤔","😢","😡","👍","👎","👏","🙏","❤️","🔥","🎉","✅","👀","💬"];
+emojis.forEach(e=>{
+  const b=document.createElement("button");
+  b.type="button"; b.textContent=e;
+  b.onclick=()=>{messageInput.value+=e;messageInput.focus()};
+  emojiPanel.appendChild(b);
+});
+emojiBtn.onclick=()=>emojiPanel.classList.toggle("show");
+document.addEventListener("click",e=>{
+  if(!emojiPanel.contains(e.target)&&e.target!==emojiBtn)emojiPanel.classList.remove("show");
+});
+
+// Escape cierra modales
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){
+    profileModal.classList.remove("show");
+    infoModal.classList.remove("show");
+    emojiPanel.classList.remove("show");
+  }
+});
+
 </script>
 </body>
 </html>
