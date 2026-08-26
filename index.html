@@ -183,13 +183,13 @@ radial-gradient(circle at 80% 20%,rgba(59,130,246,.16),transparent 28%)}
     </div>
 
     <div class="messages" id="messages">
-      <div class="empty"><div class="big">💬</div>Ve a <strong>Personas</strong>, elige otra cuenta registrada y comienza una conversación.</div>
+      <div class="empty"><div class="big">💬</div>Ve a <strong>Personas</strong>, pulsa sobre otro usuario y se abrirá el chat para escribir de inmediato.</div>
     </div>
 
     <form class="composer" id="composer">
-      <button type="button" class="emoji-btn" id="emojiBtn" disabled title="Emojis">☺</button>
-      <input id="messageInput" placeholder="Escribe un mensaje..." disabled autocomplete="off">
-      <button class="send" id="sendButton" disabled>Enviar</button>
+      <button type="button" class="emoji-btn" id="emojiBtn" title="Emojis">☺</button>
+      <input id="messageInput" placeholder="Selecciona un chat para escribir..." autocomplete="off">
+      <button class="send" id="sendButton">Enviar</button>
       <div class="emoji-panel" id="emojiPanel"></div>
     </form>
   </main>
@@ -598,22 +598,41 @@ function renderList(){
 }
 
 async function openChatWith(peer){
-  const existing=chats.find(c=>c.members.includes(peer.uid));
-  if(existing){selectChat(existing,peer);return}
-  const ref=doc(collection(db,"chats"));
-  const data={
-    members:[currentUser.uid,peer.uid],
-    createdAt:serverTimestamp(),
-    updatedAt:serverTimestamp(),
-    lastMessage:"",
-    lastMessageSenderId:"",
-    unreadFor:{[currentUser.uid]:0,[peer.uid]:0},
-    lastReadAt:{}
-  };
-  await setDoc(ref,data);
-  selectChat({id:ref.id,...data},peer);
+  if(!currentUser||!peer)return;
+
+  let existing=chats.find(c=>c.members.includes(peer.uid));
   currentTab="chats";
   document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab==="chats"));
+
+  if(existing){
+    selectChat(existing,peer);
+    return;
+  }
+
+  try{
+    const ref=doc(collection(db,"chats"));
+    const data={
+      members:[currentUser.uid,peer.uid],
+      createdAt:serverTimestamp(),
+      updatedAt:serverTimestamp(),
+      lastMessage:"",
+      lastMessageSenderId:"",
+      unreadFor:{[currentUser.uid]:0,[peer.uid]:0},
+      lastReadAt:{}
+    };
+    await setDoc(ref,data);
+
+    const localChat={
+      id:ref.id,
+      ...data,
+      members:[currentUser.uid,peer.uid]
+    };
+    chats.unshift(localChat);
+    selectChat(localChat,peer);
+  }catch(err){
+    console.error("Error creando chat:",err);
+    alert("No se pudo crear la conversación: "+(err.code||err.message||err));
+  }
 }
 
 async function markChatRead(chatId){
@@ -626,15 +645,17 @@ async function markChatRead(chatId){
   }catch(e){console.warn("No se pudo marcar como leído",e)}
 }
 function selectChat(chat,peer){
-  activeChat=chat;activePeer=peer;
-  peerName.textContent=peer.name||peer.email;
-  peerAvatar.textContent=initials(peer.name||peer.email);
-  peerStatus.textContent=presenceText(peer);
-  messageInput.disabled=false;sendButton.disabled=false;emojiBtn.disabled=false;
+  activeChat=chat;
+  activePeer=peer;
+  peerName.textContent=peer?.name||peer?.email||"Usuario";
+  peerAvatar.textContent=initials(peer?.name||peer?.email||"Usuario");
+  peerStatus.textContent=presenceText(peer||{});
+  messageInput.placeholder="Escribe un mensaje...";
   appScreen.classList.add("chat-open");
   subscribeMessages(chat.id);
   markChatRead(chat.id);
   renderList();
+  setTimeout(()=>messageInput.focus(),50);
 }
 
 function subscribeMessages(chatId){
@@ -665,18 +686,40 @@ function subscribeMessages(chatId){
 
 composer.onsubmit=async e=>{
   e.preventDefault();
-  if(!activeChat||!currentUser)return;
+
+  if(!currentUser){
+    alert("Tu sesión no está activa.");
+    return;
+  }
+  if(!activeChat){
+    alert("Primero selecciona una conversación en Chats o una persona en Personas.");
+    return;
+  }
+
   const text=messageInput.value.trim();
-  if(!text)return;
+  if(!text){
+    messageInput.focus();
+    return;
+  }
+
+  const peerId=activeChat.members.find(x=>x!==currentUser.uid);
+  if(!peerId){
+    alert("No se pudo identificar al destinatario.");
+    return;
+  }
+
+  const previous=text;
   messageInput.value="";
   sendButton.disabled=true;
+  sendButton.textContent="Enviando…";
+
   try{
     await addDoc(collection(db,"chats",activeChat.id,"messages"),{
       text,
       senderId:currentUser.uid,
       createdAt:serverTimestamp()
     });
-    const peerId=activeChat.members.find(x=>x!==currentUser.uid);
+
     await updateDoc(doc(db,"chats",activeChat.id),{
       lastMessage:text,
       lastMessageSenderId:currentUser.uid,
@@ -685,12 +728,30 @@ composer.onsubmit=async e=>{
       ["unreadFor."+currentUser.uid]:0,
       ["lastReadAt."+currentUser.uid]:serverTimestamp()
     });
+
+    messageInput.focus();
   }catch(err){
-    console.error(err);
-    alert("No se pudo enviar el mensaje. Revisa tu configuración y las reglas de Firestore.");
-    messageInput.value=text;
-  }finally{sendButton.disabled=false;messageInput.focus()}
+    console.error("Error enviando mensaje:",err);
+    messageInput.value=previous;
+    alert("No se pudo enviar el mensaje: "+(err.code||err.message||err));
+  }finally{
+    sendButton.disabled=false;
+    sendButton.textContent="Enviar";
+  }
 };
+
+
+messageInput.addEventListener("focus",()=>{
+  if(!activeChat){
+    messageInput.blur();
+    alert("Selecciona primero una conversación.");
+  }
+});
+sendButton.addEventListener("click",()=>{
+  if(!activeChat){
+    alert("Selecciona primero una conversación.");
+  }
+});
 
 // Perfil
 document.getElementById("profileBtn").onclick=async()=>{
@@ -720,7 +781,10 @@ document.getElementById("saveProfile").onclick=async()=>{
 
 // Información del contacto
 infoBtn.onclick=()=>{
-  if(!activePeer)return;
+  if(!activePeer){
+    alert("Selecciona una conversación para ver la información del contacto.");
+    return;
+  }
   document.getElementById("infoName").textContent=activePeer.name||activePeer.email;
   document.getElementById("infoEmail").textContent=activePeer.email||"—";
   document.getElementById("infoStatus").textContent=activePeer.status||"Disponible";
@@ -737,7 +801,13 @@ emojis.forEach(e=>{
   b.onclick=()=>{messageInput.value+=e;messageInput.focus()};
   emojiPanel.appendChild(b);
 });
-emojiBtn.onclick=()=>emojiPanel.classList.toggle("show");
+emojiBtn.onclick=()=>{
+  if(!activeChat){
+    alert("Selecciona una conversación antes de escribir un mensaje.");
+    return;
+  }
+  emojiPanel.classList.toggle("show");
+};
 document.addEventListener("click",e=>{
   if(!emojiPanel.contains(e.target)&&e.target!==emojiBtn)emojiPanel.classList.remove("show");
 });
