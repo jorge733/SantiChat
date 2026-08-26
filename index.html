@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#0f172a">
+<title>SantiChat V2</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop stop-color=%22%233b82f6%22/%3E%3Cstop offset=%221%22 stop-color=%22%237c3aed%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2264%22 height=%2264%22 rx=%2218%22 fill=%22url(%23g)%22/%3E%3Cpath d=%22M19 20c4-6 20-6 25 0l-6 4c-3-3-10-3-12 0-2 3 1 5 7 6 9 2 14 5 14 12 0 10-12 14-21 12-5-1-9-3-12-7l7-4c3 4 7 5 11 5 4 0 8-1 8-5 0-3-3-4-9-5-9-2-14-5-14-12 0-2 1-4 2-6z%22 fill=%22white%22/%3E%3C/svg%3E">
+<style>
+*{box-sizing:border-box}
+:root{
+  --bg:#08111f;--panel:#0f172a;--panel2:#111c30;--line:#22304a;--text:#f8fafc;--muted:#94a3b8;
+  --blue:#3b82f6;--blue2:#2563eb;--green:#22c55e;--red:#ef4444;--bubble:#1e293b;
+}
+html,body{margin:0;height:100%;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+button,input{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+.screen{min-height:100vh}
+.auth-screen{display:grid;grid-template-columns:1.15fr .85fr;background:
+radial-gradient(circle at 18% 20%,rgba(59,130,246,.20),transparent 30%),
+linear-gradient(135deg,#07101d,#0f172a)}
+.auth-hero{padding:8vw;display:flex;flex-direction:column;justify-content:center}
+.logo{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:800}
+.logo-mark{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--blue),#7c3aed);display:grid;place-items:center;box-shadow:0 12px 36px rgba(59,130,246,.3)}
+.auth-hero h1{font-size:clamp(40px,6vw,76px);line-height:.98;margin:42px 0 20px;max-width:700px}
+.auth-hero p{max-width:620px;font-size:18px;color:#b7c3d6;line-height:1.6}
+.features{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.pill{padding:10px 14px;border:1px solid #263856;border-radius:999px;background:rgba(15,23,42,.6);color:#cbd5e1;font-size:14px}
+.auth-panel{display:flex;align-items:center;justify-content:center;padding:30px;background:rgba(7,13,24,.38);backdrop-filter:blur(12px)}
+.card{width:min(440px,100%);padding:28px;background:rgba(15,23,42,.96);border:1px solid var(--line);border-radius:24px;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+.card h2{margin:0 0 7px}.card .sub{color:var(--muted);margin-bottom:22px}
+.field{margin-bottom:14px}.field label{display:block;font-size:12px;color:#cbd5e1;margin:0 0 7px}
+.field input{width:100%;padding:13px 14px;border-radius:12px;border:1px solid #2a3955;background:#091322;color:white;outline:none}
+.field input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.primary{width:100%;border:0;border-radius:12px;padding:13px;background:var(--blue);color:white;font-weight:700}
+.primary:hover{background:var(--blue2)}
+.switch{margin-top:16px;text-align:center;color:var(--muted);font-size:14px}
+.link{color:#60a5fa;cursor:pointer}
+.notice{padding:11px 12px;border-radius:10px;margin-bottom:14px;font-size:13px;background:#172033;color:#cbd5e1;border:1px solid #25334a}
+.notice.error{background:#3a151b;border-color:#65242c;color:#fecaca}
+.notice.ok{background:#0f2c20;border-color:#1e543a;color:#bbf7d0}
+.app{display:grid;grid-template-columns:340px 1fr;height:100vh}
+.sidebar{background:#0d1626;border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.topbar{height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--line)}
+.me{display:flex;gap:10px;align-items:center;min-width:0}
+.avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#334155,#1e293b);display:grid;place-items:center;font-weight:800;flex:0 0 auto}
+.me-info{min-width:0}.me-info strong,.chat-meta strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.me-info small,.chat-meta span{color:var(--muted);font-size:12px}
+.icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:#121d31;color:white}
+.search{padding:12px}.search input{width:100%;border:1px solid var(--line);background:#091322;color:white;padding:11px 13px;border-radius:11px;outline:none}
+.tabs{display:flex;gap:6px;padding:0 12px 12px}.tab{flex:1;padding:9px;border-radius:9px;border:1px solid var(--line);background:#101b2e;color:var(--muted)}
+.tab.active{background:#1f6feb;color:white;border-color:#1f6feb}
+.list{overflow:auto;flex:1}
+.item{display:grid;grid-template-columns:48px 1fr auto;gap:10px;padding:13px 14px;border-top:1px solid rgba(34,48,74,.55);cursor:pointer}
+.item:hover,.item.active{background:#132037}
+.item time{font-size:11px;color:var(--muted)}
+.item .preview{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:185px}
+.dot{width:10px;height:10px;background:var(--green);border:2px solid #0d1626;border-radius:50%;position:absolute;right:0;bottom:1px}
+.avatar-wrap{position:relative;width:42px}
+.badge{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--blue);font-size:11px;display:grid;place-items:center;margin:5px 0 0 auto}
+.main{display:flex;flex-direction:column;min-width:0;background:
+linear-gradient(rgba(8,17,31,.94),rgba(8,17,31,.94)),
+radial-gradient(circle at 80% 20%,rgba(59,130,246,.16),transparent 28%)}
+.chat-head{height:72px;padding:0 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;background:#0d1626}
+.head-user{display:flex;align-items:center;gap:11px}.head-user small{display:block;color:var(--muted);font-size:12px}
+.messages{flex:1;overflow:auto;padding:24px;display:flex;flex-direction:column;gap:9px}
+.empty{margin:auto;text-align:center;color:var(--muted);max-width:340px}
+.empty .big{font-size:52px;margin-bottom:12px}
+.message{max-width:min(70%,650px);padding:10px 12px;border-radius:15px;line-height:1.4;word-break:break-word;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.message.them{align-self:flex-start;background:var(--bubble);border-bottom-left-radius:4px}
+.message.me{align-self:flex-end;background:#2563eb;border-bottom-right-radius:4px}
+.message time{display:block;text-align:right;font-size:10px;opacity:.7;margin-top:5px}
+.composer{display:grid;grid-template-columns:1fr auto;gap:10px;padding:14px;border-top:1px solid var(--line);background:#0d1626}
+.composer input{border:1px solid var(--line);background:#091322;color:white;border-radius:12px;padding:12px 14px;outline:none}
+.send{border:0;border-radius:12px;background:var(--blue);color:white;padding:0 18px;font-weight:700}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;place-items:center;padding:20px;z-index:10}
+.modal.show{display:grid}.modal-card{width:min(520px,100%);max-height:80vh;overflow:auto;background:#0f172a;border:1px solid var(--line);border-radius:18px;padding:18px}
+.user-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.user-row .grow{flex:1}.user-row small{display:block;color:var(--muted)}
+.user-row button{border:0;border-radius:9px;background:var(--blue);color:white;padding:8px 11px}
+.config-warning{position:fixed;left:50%;transform:translateX(-50%);top:12px;z-index:20;background:#3b2410;border:1px solid #805421;color:#fde68a;padding:10px 14px;border-radius:11px;font-size:13px}
+.back{display:none}
+@media(max-width:800px){
+  .auth-screen{grid-template-columns:1fr}.auth-hero{display:none}
+  .app{grid-template-columns:1fr}.main{display:none}.app.chat-open .sidebar{display:none}.app.chat-open .main{display:flex}.back{display:inline-grid}
+}
+</style>
+</head>
+<body>
+
+<div id="configWarning" class="config-warning hidden">⚙️ Falta pegar la configuración de Firebase en este archivo.</div>
+
+<section id="authScreen" class="screen auth-screen">
+  <div class="auth-hero">
+    <div class="logo"><div class="logo-mark">S</div>SantiChat</div>
+    <h1>Habla con los tuyos. En tiempo real.</h1>
+    <p>Una app de mensajería privada construida desde cero, con cuentas reales, conversaciones entre usuarios y sincronización instantánea.</p>
+    <div class="features">
+      <span class="pill">Mensajes en tiempo real</span>
+      <span class="pill">Cuentas privadas</span>
+      <span class="pill">Responsive</span>
+      <span class="pill">Firestore</span>
+    </div>
+  </div>
+
+  <div class="auth-panel">
+    <div class="card">
+      <div class="logo" style="font-size:19px;margin-bottom:22px"><div class="logo-mark" style="width:38px;height:38px">S</div>SantiChat</div>
+      <h2 id="authTitle">Iniciar sesión</h2>
+      <div class="sub" id="authSub">Ingresa con tu cuenta para ver tus conversaciones.</div>
+      <div id="authNotice" class="notice hidden"></div>
+
+      <div class="field hidden" id="nameField">
+        <label>Nombre</label>
+        <input id="nameInput" placeholder="Tu nombre">
+      </div>
+      <div class="field">
+        <label>Correo electrónico</label>
+        <input id="emailInput" type="email" placeholder="nombre@correo.com">
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input id="passwordInput" type="password" placeholder="Mínimo 6 caracteres">
+      </div>
+      <button class="primary" id="authButton">Entrar</button>
+      <div class="switch"><span id="switchText">¿No tienes cuenta?</span> <span class="link" id="switchMode">Crear cuenta</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="appScreen" class="app hidden">
+  <aside class="sidebar">
+    <div class="topbar">
+      <div class="me">
+        <div class="avatar" id="myAvatar">?</div>
+        <div class="me-info"><strong id="myName">Usuario</strong><small id="myEmail"></small></div>
+      </div>
+      <button class="icon-btn" id="logoutBtn" title="Cerrar sesión">↪</button>
+    </div>
+    <div class="search"><input id="searchInput" placeholder="Buscar..."></div>
+    <div class="tabs">
+      <button class="tab active" data-tab="chats">Chats</button>
+      <button class="tab" data-tab="people">Personas</button>
+    </div>
+    <div class="list" id="list"></div>
+  </aside>
+
+  <main class="main">
+    <div class="chat-head">
+      <div class="head-user">
+        <button class="icon-btn back" id="backBtn">←</button>
+        <div class="avatar" id="peerAvatar">?</div>
+        <div><strong id="peerName">Selecciona una conversación</strong><small id="peerStatus">SantiChat</small></div>
+      </div>
+      <button class="icon-btn">⋮</button>
+    </div>
+
+    <div class="messages" id="messages">
+      <div class="empty"><div class="big">💬</div>Selecciona un chat o busca una persona para comenzar una conversación.</div>
+    </div>
+
+    <form class="composer" id="composer">
+      <input id="messageInput" placeholder="Escribe un mensaje..." disabled autocomplete="off">
+      <button class="send" id="sendButton" disabled>Enviar</button>
+    </form>
+  </main>
+</section>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged, updateProfile
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+import {
+  getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc,
+  query, where, orderBy, onSnapshot, serverTimestamp, updateDoc
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+/* ============================================================
+   1) PEGA AQUÍ TU CONFIGURACIÓN DE FIREBASE
+   Firebase Console > Project settings > Your apps > Web app
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyDVPAXoUb1GmfQodlAVOzKXS_7BnJrFAHc",
+  authDomain: "santichat-69571.firebaseapp.com",
+  projectId: "santichat-69571",
+  storageBucket: "santichat-69571.firebasestorage.app",
+  messagingSenderId: "240689734075",
+  appId: "1:240689734075:web:9bbe908ce71da7d233249e",
+  measurementId: "G-4QFGLMEXVT"
+};
+/* ============================================================ */
+
+const configured = firebaseConfig.apiKey !== "PEGA_AQUI";
+const configWarning = document.getElementById("configWarning");
+if(!configured) configWarning.classList.remove("hidden");
+
+let auth=null, db=null;
+if(configured){
+  const firebaseApp = initializeApp(firebaseConfig);
+  auth = getAuth(firebaseApp);
+  db = getFirestore(firebaseApp);
+}
+
+/* UI */
+const authScreen=document.getElementById("authScreen");
+const appScreen=document.getElementById("appScreen");
+const authTitle=document.getElementById("authTitle");
+const authSub=document.getElementById("authSub");
+const authNotice=document.getElementById("authNotice");
+const nameField=document.getElementById("nameField");
+const nameInput=document.getElementById("nameInput");
+const emailInput=document.getElementById("emailInput");
+const passwordInput=document.getElementById("passwordInput");
+const authButton=document.getElementById("authButton");
+const switchMode=document.getElementById("switchMode");
+const switchText=document.getElementById("switchText");
+const myName=document.getElementById("myName");
+const myEmail=document.getElementById("myEmail");
+const myAvatar=document.getElementById("myAvatar");
+const list=document.getElementById("list");
+const searchInput=document.getElementById("searchInput");
+const messagesEl=document.getElementById("messages");
+const composer=document.getElementById("composer");
+const messageInput=document.getElementById("messageInput");
+const sendButton=document.getElementById("sendButton");
+const peerName=document.getElementById("peerName");
+const peerAvatar=document.getElementById("peerAvatar");
+const peerStatus=document.getElementById("peerStatus");
+
+let mode="login";
+let currentUser=null;
+let currentTab="chats";
+let activeChat=null;
+let activePeer=null;
+let chats=[];
+let people=[];
+let unsubscribeChats=null;
+let unsubscribeMessages=null;
+
+function initials(name="Usuario"){
+  return name.split(/\s+/).slice(0,2).map(x=>x[0]?.toUpperCase()).join("")||"?";
+}
+function escapeHtml(s=""){
+  return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+}
+function showNotice(text,type=""){
+  authNotice.textContent=text;authNotice.className="notice "+type;authNotice.classList.remove("hidden");
+}
+function hideNotice(){authNotice.classList.add("hidden")}
+function formatTime(ts){
+  if(!ts?.toDate)return "";
+  return ts.toDate().toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
+}
+function formatLast(ts){
+  if(!ts?.toDate)return "";
+  const d=ts.toDate(), now=new Date();
+  if(d.toDateString()===now.toDateString()) return d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
+  return d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit"});
+}
+
+switchMode.onclick=()=>{
+  hideNotice();
+  mode=mode==="login"?"register":"login";
+  const reg=mode==="register";
+  nameField.classList.toggle("hidden",!reg);
+  authTitle.textContent=reg?"Crear cuenta":"Iniciar sesión";
+  authSub.textContent=reg?"Crea tu perfil para comenzar a chatear.":"Ingresa con tu cuenta para ver tus conversaciones.";
+  authButton.textContent=reg?"Crear cuenta":"Entrar";
+  switchText.textContent=reg?"¿Ya tienes cuenta?":"¿No tienes cuenta?";
+  switchMode.textContent=reg?"Iniciar sesión":"Crear cuenta";
+};
+
+authButton.onclick=async()=>{
+  if(!configured){showNotice("Primero debes pegar tu configuración de Firebase en el archivo.","error");return}
+  const email=emailInput.value.trim();
+  const password=passwordInput.value;
+  const name=nameInput.value.trim();
+  if(!email||!password||(mode==="register"&&!name)){showNotice("Completa todos los campos.","error");return}
+  authButton.disabled=true;
+  try{
+    if(mode==="register"){
+      const cred=await createUserWithEmailAndPassword(auth,email,password);
+      await updateProfile(cred.user,{displayName:name});
+      await setDoc(doc(db,"users",cred.user.uid),{
+        uid:cred.user.uid,name,email,createdAt:serverTimestamp(),lastSeen:serverTimestamp()
+      });
+    }else{
+      await signInWithEmailAndPassword(auth,email,password);
+    }
+  }catch(err){
+    const friendly={
+      "auth/email-already-in-use":"Ese correo ya tiene una cuenta.",
+      "auth/invalid-credential":"Correo o contraseña incorrectos.",
+      "auth/weak-password":"La contraseña debe tener al menos 6 caracteres.",
+      "auth/invalid-email":"El correo no es válido."
+    };
+    showNotice(friendly[err.code]||("Error: "+err.message),"error");
+  }finally{authButton.disabled=false}
+};
+
+document.getElementById("logoutBtn").onclick=()=>configured&&signOut(auth);
+document.getElementById("backBtn").onclick=()=>appScreen.classList.remove("chat-open");
+
+document.querySelectorAll(".tab").forEach(btn=>{
+  btn.onclick=()=>{
+    currentTab=btn.dataset.tab;
+    document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===btn));
+    renderList();
+  };
+});
+searchInput.oninput=renderList;
+
+if(configured){
+  onAuthStateChanged(auth,async user=>{
+    if(user){
+      currentUser=user;
+      await ensureUserProfile(user);
+      authScreen.classList.add("hidden");
+      appScreen.classList.remove("hidden");
+      myName.textContent=user.displayName||user.email.split("@")[0];
+      myEmail.textContent=user.email;
+      myAvatar.textContent=initials(user.displayName||user.email);
+      await loadPeople();
+      subscribeChats();
+    }else{
+      currentUser=null;activeChat=null;activePeer=null;
+      if(unsubscribeChats)unsubscribeChats();
+      if(unsubscribeMessages)unsubscribeMessages();
+      authScreen.classList.remove("hidden");
+      appScreen.classList.add("hidden");
+    }
+  });
+}
+
+async function ensureUserProfile(user){
+  const ref=doc(db,"users",user.uid);
+  const snap=await getDoc(ref);
+  if(!snap.exists()){
+    await setDoc(ref,{
+      uid:user.uid,
+      name:user.displayName||user.email.split("@")[0],
+      email:user.email,
+      createdAt:serverTimestamp(),
+      lastSeen:serverTimestamp()
+    });
+  }else{
+    await updateDoc(ref,{lastSeen:serverTimestamp()}).catch(()=>{});
+  }
+}
+
+async function loadPeople(){
+  const snap=await getDocs(collection(db,"users"));
+  people=snap.docs.map(d=>d.data()).filter(u=>u.uid!==currentUser.uid);
+  renderList();
+}
+
+function subscribeChats(){
+  if(unsubscribeChats)unsubscribeChats();
+  const q=query(collection(db,"chats"),where("members","array-contains",currentUser.uid));
+  unsubscribeChats=onSnapshot(q,snap=>{
+    chats=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>{
+      const at=a.updatedAt?.seconds||0,bt=b.updatedAt?.seconds||0;
+      return bt-at;
+    });
+    renderList();
+  },err=>console.error("Chats:",err));
+}
+
+function renderList(){
+  const q=searchInput.value.trim().toLowerCase();
+  list.innerHTML="";
+  if(currentTab==="people"){
+    const filtered=people.filter(p=>(p.name||p.email).toLowerCase().includes(q));
+    if(!filtered.length){list.innerHTML='<div class="empty" style="padding:25px">No hay usuarios para mostrar.</div>';return}
+    filtered.forEach(p=>{
+      const el=document.createElement("div");
+      el.className="item";
+      el.innerHTML=`
+        <div class="avatar-wrap"><div class="avatar">${initials(p.name||p.email)}</div></div>
+        <div class="chat-meta"><strong>${escapeHtml(p.name||p.email)}</strong><span>${escapeHtml(p.email)}</span></div>
+        <time>›</time>`;
+      el.onclick=()=>openChatWith(p);
+      list.appendChild(el);
+    });
+    return;
+  }
+
+  const filtered=chats.filter(ch=>{
+    const peerId=ch.members.find(x=>x!==currentUser.uid);
+    const p=people.find(x=>x.uid===peerId);
+    return !q || (p&&(p.name||p.email).toLowerCase().includes(q));
+  });
+  if(!filtered.length){list.innerHTML='<div class="empty" style="padding:25px">Aún no tienes conversaciones.</div>';return}
+  filtered.forEach(ch=>{
+    const peerId=ch.members.find(x=>x!==currentUser.uid);
+    const p=people.find(x=>x.uid===peerId)||{uid:peerId,name:"Usuario",email:""};
+    const el=document.createElement("div");
+    el.className="item"+(activeChat?.id===ch.id?" active":"");
+    el.innerHTML=`
+      <div class="avatar-wrap"><div class="avatar">${initials(p.name||p.email)}</div></div>
+      <div class="chat-meta">
+        <strong>${escapeHtml(p.name||p.email)}</strong>
+        <span class="preview">${escapeHtml(ch.lastMessage||"Nueva conversación")}</span>
+      </div>
+      <div><time>${formatLast(ch.updatedAt)}</time></div>`;
+    el.onclick=()=>selectChat(ch,p);
+    list.appendChild(el);
+  });
+}
+
+async function openChatWith(peer){
+  const existing=chats.find(c=>c.members.includes(peer.uid));
+  if(existing){selectChat(existing,peer);return}
+  const ref=doc(collection(db,"chats"));
+  const data={
+    members:[currentUser.uid,peer.uid],
+    createdAt:serverTimestamp(),
+    updatedAt:serverTimestamp(),
+    lastMessage:""
+  };
+  await setDoc(ref,data);
+  selectChat({id:ref.id,...data},peer);
+  currentTab="chats";
+  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab==="chats"));
+}
+
+function selectChat(chat,peer){
+  activeChat=chat;activePeer=peer;
+  peerName.textContent=peer.name||peer.email;
+  peerAvatar.textContent=initials(peer.name||peer.email);
+  peerStatus.textContent=peer.email;
+  messageInput.disabled=false;sendButton.disabled=false;
+  appScreen.classList.add("chat-open");
+  subscribeMessages(chat.id);
+  renderList();
+}
+
+function subscribeMessages(chatId){
+  if(unsubscribeMessages)unsubscribeMessages();
+  const q=query(collection(db,"chats",chatId,"messages"),orderBy("createdAt","asc"));
+  unsubscribeMessages=onSnapshot(q,snap=>{
+    messagesEl.innerHTML="";
+    if(snap.empty){
+      messagesEl.innerHTML='<div class="empty"><div class="big">👋</div>Escribe el primer mensaje de esta conversación.</div>';
+      return;
+    }
+    snap.docs.forEach(d=>{
+      const m=d.data();
+      const mine=m.senderId===currentUser.uid;
+      const el=document.createElement("div");
+      el.className="message "+(mine?"me":"them");
+      el.innerHTML=`<div>${escapeHtml(m.text||"")}</div><time>${formatTime(m.createdAt)}${mine?" · ✓":""}</time>`;
+      messagesEl.appendChild(el);
+    });
+    messagesEl.scrollTop=messagesEl.scrollHeight;
+  },err=>{
+    console.error("Mensajes:",err);
+    messagesEl.innerHTML='<div class="empty">No fue posible cargar los mensajes. Revisa las reglas de Firestore.</div>';
+  });
+}
+
+composer.onsubmit=async e=>{
+  e.preventDefault();
+  if(!activeChat||!currentUser)return;
+  const text=messageInput.value.trim();
+  if(!text)return;
+  messageInput.value="";
+  sendButton.disabled=true;
+  try{
+    await addDoc(collection(db,"chats",activeChat.id,"messages"),{
+      text,
+      senderId:currentUser.uid,
+      createdAt:serverTimestamp()
+    });
+    await updateDoc(doc(db,"chats",activeChat.id),{
+      lastMessage:text,
+      updatedAt:serverTimestamp()
+    });
+  }catch(err){
+    console.error(err);
+    alert("No se pudo enviar el mensaje. Revisa tu configuración y las reglas de Firestore.");
+    messageInput.value=text;
+  }finally{sendButton.disabled=false;messageInput.focus()}
+};
+</script>
+</body>
+</html>
